@@ -113,15 +113,15 @@ Akses di `http://localhost:8000/admin`
 | HR Admin | hr@company.com | password |
 | Manager IT | manager.it@company.com | password |
 | Manager Finance | manager.finance@company.com | password |
-| Manager HR | manager.hr@company.com | password |
 | Manager Marketing | manager.marketing@company.com | password |
-| Karyawan IT | budi@company.com | password |
-| Karyawan IT | sari@company.com | password |
-| Karyawan Finance | andi@company.com | password |
-| Karyawan Finance | maya@company.com | password |
-| Karyawan HR | dewi@company.com | password |
-| Karyawan Marketing | rina@company.com | password |
-| Karyawan Marketing | tono@company.com | password |
+| Karyawan | dewi@company.com | password |
+| Karyawan | rizky@company.com | password |
+| Karyawan | maya@company.com | password |
+| Karyawan | fajar@company.com | password |
+| Karyawan | anisa@company.com | password |
+| Karyawan | dimas@company.com | password |
+| Karyawan | putri@company.com | password |
+| Karyawan | arif@company.com | password |
 
 ## Struktur URL
 
