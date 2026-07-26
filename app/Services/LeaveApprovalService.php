@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\LeaveStatus;
+use App\Events\LeaveRequestApproved;
+use App\Events\LeaveRequestRejected;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +13,10 @@ class LeaveApprovalService
 {
     public function approve(LeaveRequest $leaveRequest, User $approver, ?string $notes = null): LeaveRequest
     {
+        if (! $leaveRequest->isPending()) {
+            return $leaveRequest->fresh();
+        }
+
         DB::transaction(function () use ($leaveRequest, $approver, $notes) {
             $oldValues = $leaveRequest->toArray();
 
@@ -18,7 +24,6 @@ class LeaveApprovalService
                 'status' => LeaveStatus::Approved,
                 'approved_by' => $approver->id,
                 'approved_at' => now(),
-                'rejection_reason' => $notes,
             ]);
 
             ActivityLogService::log(
@@ -30,7 +35,11 @@ class LeaveApprovalService
                 $leaveRequest->toArray()
             );
 
-            event(new \App\Events\LeaveRequestApproved($leaveRequest));
+            event(new LeaveRequestApproved($leaveRequest));
+
+            $leaveRequest->user->notify(
+                new \App\Notifications\LeaveRequestNotification($leaveRequest, 'approved')
+            );
         });
 
         return $leaveRequest->fresh();
@@ -38,6 +47,10 @@ class LeaveApprovalService
 
     public function reject(LeaveRequest $leaveRequest, User $approver, string $reason): LeaveRequest
     {
+        if (! $leaveRequest->isPending()) {
+            return $leaveRequest->fresh();
+        }
+
         DB::transaction(function () use ($leaveRequest, $approver, $reason) {
             $oldValues = $leaveRequest->toArray();
 
@@ -59,7 +72,11 @@ class LeaveApprovalService
                 $leaveRequest->toArray()
             );
 
-            event(new \App\Events\LeaveRequestRejected($leaveRequest));
+            event(new LeaveRequestRejected($leaveRequest));
+
+            $leaveRequest->user->notify(
+                new \App\Notifications\LeaveRequestNotification($leaveRequest, 'rejected')
+            );
         });
 
         return $leaveRequest->fresh();

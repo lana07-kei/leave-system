@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\LeaveStatus;
+use App\Events\LeaveRequestCreated;
 use App\Exceptions\LeaveException;
 use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
@@ -37,8 +38,8 @@ class LeaveRequestService
             ]);
 
             $attachmentPath = null;
-            if (isset($data['attachment']) && $data['attachment']) {
-                $attachmentPath = $data['attachment']->store('attachments', 'public');
+            if (isset($data['attachment_path']) && $data['attachment_path']) {
+                $attachmentPath = $data['attachment_path'];
             }
 
             $leaveRequest = LeaveRequest::create([
@@ -61,26 +62,32 @@ class LeaveRequestService
                 $leaveRequest->toArray()
             );
 
+            event(new LeaveRequestCreated($leaveRequest));
+
             return $leaveRequest;
         });
     }
 
     public function cancelLeaveRequest(User $user, LeaveRequest $leaveRequest): void
     {
+        if ($leaveRequest->user_id !== $user->id) {
+            throw LeaveException::cannotCancel();
+        }
+
         if (! $leaveRequest->canBeCancelled()) {
             throw LeaveException::cannotCancel();
         }
 
         DB::transaction(function () use ($user, $leaveRequest) {
-            $balance = LeaveBalance::where('user_id', $user->id)
+            $balance = LeaveBalance::where('user_id', $leaveRequest->user_id)
                 ->where('leave_type_id', $leaveRequest->leave_type_id)
-                ->where('year', now()->year)
+                ->where('year', $leaveRequest->start_date->year)
                 ->lockForUpdate()
                 ->first();
 
             if ($balance) {
                 $balance->update([
-                    'used_days' => $balance->used_days - $leaveRequest->total_days,
+                    'used_days' => max(0, $balance->used_days - $leaveRequest->total_days),
                     'remaining_days' => $balance->remaining_days + $leaveRequest->total_days,
                 ]);
             }
@@ -132,6 +139,6 @@ class LeaveRequestService
             }
         }
 
-        return max(1, $days);
+        return $days;
     }
 }

@@ -6,7 +6,6 @@ use App\Filament\Resources\DepartmentResource;
 use App\Filament\Resources\LeaveRequestResource;
 use App\Filament\Resources\LeaveTypeResource;
 use App\Filament\Resources\UserResource;
-use App\Filament\Resources\LeaveRequestResource\Pages\ManageLeaveRequests;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -46,6 +45,8 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
+                \App\Filament\Widgets\LeaveStatsOverview::class,
+                \App\Filament\Widgets\RecentLeaveRequests::class,
             ])
             ->middleware([
                 EncryptCookies::class,

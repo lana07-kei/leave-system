@@ -6,50 +6,50 @@ Aplikasi web untuk mengelola pengajuan cuti karyawan di lingkungan perusahaan, d
 
 ### 3 Role Pengguna (RBAC)
 - **Karyawan (Employee)** - Ajukan cuti, lihat riwayat, upload dokumen pendukung, batalkan pengajuan
-- **Manager** - Setujui/tolak pengajuan cuti anggota tim, lihat laporan departemen
-- **HR Admin** - Kelola karyawan, jenis cuti, departemen, saldo cuti, laporan keseluruhan
+- **Manager** - Setujui/tolak pengajuan cuti anggota tim departemen, lihat laporan departemen
+- **HR Admin** - Kelola semua pengajuan, karyawan, jenis cuti, departemen, saldo cuti, laporan keseluruhan
 
 ### Proses Persetujuan
 - Pengajuan cuti melalui proses verifikasi oleh Manager
-- Alur: Pending → Approved / Rejected
+- Alur: Pending -> Approved / Rejected
 - Auto-cancel pengajuan pending > 7 hari (scheduled job)
 - Restore saldo cuti jika ditolak atau dibatalkan
 
 ### Fitur Lainnya
 - Upload dokumen pendukung (surat sakit, dll)
 - Notifikasi email otomatis untuk perubahan status
-- Dashboard statistik real-time
-- Export data pengajuan
+- Dashboard statistik real-time (Filament Widgets)
 - Logging aktivitas (activity log)
+- Auto-cancel via scheduled command
 
 ## Tech Stack
 - **Framework**: Laravel 11
 - **Admin Panel**: Filament 3
 - **Database**: MySQL
-- **Autentikasi**: Laravel Breeze (built-in Filament)
+- **Autentikasi**: Filament built-in auth
 - **RBAC**: Custom role-based (column `role` pada users)
+- **Queue**: Database driver (untuk notifikasi)
+- **Scheduler**: Laravel Task Scheduler (auto-cancel)
 
 ## Arsitektur (Clean Architecture)
 ```
 app/
-├── Console/Commands/        # Scheduled commands
+├── Console/Commands/        # Scheduled commands (CancelExpiredLeaveRequests)
 ├── Enums/                   # LeaveStatus, UserRole
 ├── Events/                  # LeaveRequestCreated, Approved, Rejected
 ├── Exceptions/              # LeaveException
 ├── Filament/
-│   ├── Resources/           # LeaveRequestResource, UserResource, dll
-│   └── Widgets/             # StatsOverview, RecentLeaveRequests
-├── Http/Controllers/        # Employee controllers
+│   ├── Resources/           # LeaveRequestResource, UserResource, LeaveTypeResource, DepartmentResource
+│   └── Widgets/             # LeaveStatsOverview, RecentLeaveRequests
 ├── Listeners/               # AutoCancelExpiredRequests
-├── Models/                  # User, Department, LeaveRequest, dll
-├── Notifications/           # LeaveRequestNotification
-├── Policies/                # Authorization policies
+├── Models/                  # User, Department, LeaveRequest, LeaveBalance, LeaveType, ActivityLog
+├── Notifications/           # LeaveRequestNotification (ShouldQueue)
 ├── Providers/Filament/      # AdminPanelProvider
 └── Services/                # Business logic services
-    ├── LeaveRequestService
-    ├── LeaveApprovalService
-    ├── LeaveBalanceService
-    └── ActivityLogService
+    ├── LeaveRequestService       # Create, cancel, calculate working days
+    ├── LeaveApprovalService      # Approve, reject with balance restore
+    ├── LeaveBalanceService       # Initialize, reset balances
+    └── ActivityLogService        # Audit logging
 ```
 
 ## Instalasi
@@ -104,7 +104,7 @@ php artisan storage:link
 php artisan serve
 ```
 
-Akses di `http://localhost:8000`
+Akses di `http://localhost:8000/admin`
 
 ## Akun Default (Hasil Seeding)
 
@@ -113,13 +113,22 @@ Akses di `http://localhost:8000`
 | HR Admin | hr@company.com | password |
 | Manager IT | manager.it@company.com | password |
 | Manager Finance | manager.finance@company.com | password |
-| Karyawan | dewi@company.com | password |
+| Manager HR | manager.hr@company.com | password |
+| Manager Marketing | manager.marketing@company.com | password |
+| Karyawan IT | budi@company.com | password |
+| Karyawan IT | sari@company.com | password |
+| Karyawan Finance | andi@company.com | password |
+| Karyawan Finance | maya@company.com | password |
+| Karyawan HR | dewi@company.com | password |
+| Karyawan Marketing | rina@company.com | password |
+| Karyawan Marketing | tono@company.com | password |
 
 ## Struktur URL
 
 ### Admin Panel (Filament)
 - `/admin` - Dashboard admin
-- `/admin/leave-requests` - Kelola pengajuan cuti
+- `/admin/leave-requests` - Kelola pengajuan cuti (semua role)
+- `/admin/leave-requests/create` - Ajukan cuti baru (karyawan)
 - `/admin/leave-types` - Kelola jenis cuti (HR Admin)
 - `/admin/users` - Kelola karyawan (HR Admin)
 - `/admin/departments` - Kelola departemen (HR Admin)
@@ -131,7 +140,9 @@ Akses di `http://localhost:8000`
 2. **Auto-Cancel**: Pengajuan pending > 7 hari otomatis dibatalkan
 3. **Saldo Cuti**: Saldo dikurangi saat submit, dikembalikan jika ditolak/dibatalkan
 4. **Weekend Excluded**: Hari Sabtu & Minggu tidak dihitung sebagai hari cuti
-5. **Status Flow**: PENDING → APPROVED / REJECTED / CANCELLED
+5. **Status Flow**: PENDING -> APPROVED / REJECTED / CANCELLED
+6. **Ownership**: Hanya pemilik pengajuan yang bisa membatalkan
+7. **Race Condition Guard**: Menggunakan `lockForUpdate()` untuk mencegah concurrent issue
 
 ## Command Penting
 
@@ -143,6 +154,16 @@ php artisan schedule:work
 ### Cancel Expired Secara Manual
 ```bash
 php artisan leave:cancel-expired
+```
+
+### Jalankan Queue Worker (untuk notifikasi email)
+```bash
+php artisan queue:work
+```
+
+### Jalankan Tests
+```bash
+php artisan test
 ```
 
 ## UML Documentation

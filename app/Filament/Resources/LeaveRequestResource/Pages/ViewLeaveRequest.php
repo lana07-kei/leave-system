@@ -36,6 +36,11 @@ class ViewLeaveRequest extends ViewRecord
                         Infolists\Components\TextEntry::make('reason')
                             ->label('Alasan')
                             ->columnSpanFull(),
+                        Infolists\Components\TextEntry::make('attachment_path')
+                            ->label('Dokumen Pendukung')
+                            ->columnSpanFull()
+                            ->visible(fn ($record) => $record->attachment_path !== null)
+                            ->formatStateUsing(fn ($state) => 'Lampiran tersedia'),
                         Infolists\Components\TextEntry::make('status')
                             ->label('Status')
                             ->badge()

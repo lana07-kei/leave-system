@@ -22,13 +22,54 @@ class LeaveRequestResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Pengajuan Cuti';
 
+    public static function form(Form $form): Form
+    {
+        $user = auth()->user();
+
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Detail Pengajuan')
+                    ->schema([
+                        Forms\Components\Select::make('leave_type_id')
+                            ->label('Jenis Cuti')
+                            ->relationship('leaveType', 'name')
+                            ->required(),
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Tanggal Mulai')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d/m/Y'),
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('Tanggal Akhir')
+                            ->required()
+                            ->native(false)
+                            ->displayFormat('d/m/Y')
+                            ->afterOrEqual('start_date'),
+                        Forms\Components\Textarea::make('reason')
+                            ->label('Alasan')
+                            ->required()
+                            ->rows(3),
+                        Forms\Components\FileUpload::make('attachment_path')
+                            ->label('Dokumen Pendukung')
+                            ->disk('public')
+                            ->directory('attachments')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'application/pdf'])
+                            ->nullable(),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
     public static function canViewAny(): bool
     {
-        return ! auth()->user()->isEmployee();
+        return true;
     }
 
     public static function table(Table $table): Table
     {
+        $user = auth()->user();
+
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
@@ -66,6 +107,13 @@ class LeaveRequestResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
+            ->query(function ($query) use ($user) {
+                if ($user->isEmployee()) {
+                    $query->where('user_id', $user->id);
+                } elseif ($user->isManager()) {
+                    $query->whereHas('user', fn ($q) => $q->where('department_id', $user->department_id));
+                }
+            })
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
@@ -87,7 +135,7 @@ class LeaveRequestResource extends Resource
                     ->requiresConfirmation()
                     ->modalHeading('Setujui Pengajuan Cuti')
                     ->modalSubmitActionLabel('Setujui')
-                    ->visible(fn (LeaveRequest $record) => $record->isPending() && ! auth()->user()->isEmployee())
+                    ->visible(fn (LeaveRequest $record) => $record->isPending() && (auth()->user()->isAdmin() || auth()->user()->isManager()))
                     ->action(fn (LeaveRequest $record) => app(\App\Services\LeaveApprovalService::class)->approve($record, auth()->user())),
                 Tables\Actions\Action::make('reject')
                     ->label('Tolak')
@@ -102,10 +150,22 @@ class LeaveRequestResource extends Resource
                             ->rows(3),
                     ])
                     ->modalSubmitActionLabel('Tolak')
-                    ->visible(fn (LeaveRequest $record) => $record->isPending() && ! auth()->user()->isEmployee())
+                    ->visible(fn (LeaveRequest $record) => $record->isPending() && (auth()->user()->isAdmin() || auth()->user()->isManager()))
                     ->action(function (LeaveRequest $record, array $data) {
                         app(\App\Services\LeaveApprovalService::class)
                             ->reject($record, auth()->user(), $data['rejection_reason']);
+                    }),
+                Tables\Actions\Action::make('cancel')
+                    ->label('Batalkan')
+                    ->icon('heroicon-o-x-mark')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Batalkan Pengajuan')
+                    ->modalSubmitActionLabel('Ya, Batalkan')
+                    ->visible(fn (LeaveRequest $record) => $record->isPending() && $record->user_id === auth()->id())
+                    ->action(function (LeaveRequest $record) {
+                        app(\App\Services\LeaveRequestService::class)
+                            ->cancelLeaveRequest(auth()->user(), $record);
                     }),
             ])
             ->defaultSort('created_at', 'desc');
@@ -120,6 +180,7 @@ class LeaveRequestResource extends Resource
     {
         return [
             'index' => Pages\ListLeaveRequests::route('/'),
+            'create' => Pages\CreateLeaveRequest::route('/create'),
             'view' => Pages\ViewLeaveRequest::route('/{record}'),
         ];
     }
