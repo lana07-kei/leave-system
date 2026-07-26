@@ -70,10 +70,22 @@ class LeaveRequestResource extends Resource
         return true;
     }
 
-    public static function table(Table $table): Table
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $user = auth()->user();
+        $query = parent::getEloquentQuery();
 
+        if ($user->isEmployee()) {
+            $query->where('user_id', $user->id);
+        } elseif ($user->isManager()) {
+            $query->whereHas('user', fn ($q) => $q->where('department_id', $user->department_id));
+        }
+
+        return $query;
+    }
+
+    public static function table(Table $table): Table
+    {
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
@@ -111,13 +123,6 @@ class LeaveRequestResource extends Resource
                     ->dateTime('d/m/Y H:i')
                     ->sortable(),
             ])
-            ->query(function ($query) use ($user) {
-                if ($user->isEmployee()) {
-                    $query->where('user_id', $user->id);
-                } elseif ($user->isManager()) {
-                    $query->whereHas('user', fn ($q) => $q->where('department_id', $user->department_id));
-                }
-            })
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options([
