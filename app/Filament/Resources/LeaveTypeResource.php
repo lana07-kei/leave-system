@@ -18,6 +18,10 @@ class LeaveTypeResource extends Resource
 
     protected static ?string $navigationLabel = 'Jenis Cuti';
 
+    protected static ?string $navigationGroup = 'Pengelolaan';
+
+    protected static ?int $navigationSort = 3;
+
     protected static ?string $modelLabel = 'Jenis Cuti';
 
     protected static ?string $pluralModelLabel = 'Jenis Cuti';

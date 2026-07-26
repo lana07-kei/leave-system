@@ -18,6 +18,10 @@ class LeaveRequestResource extends Resource
 
     protected static ?string $navigationLabel = 'Pengajuan Cuti';
 
+    protected static ?string $navigationGroup = 'Menu Utama';
+
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $modelLabel = 'Pengajuan Cuti';
 
     protected static ?string $pluralModelLabel = 'Pengajuan Cuti';

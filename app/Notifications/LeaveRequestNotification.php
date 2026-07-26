@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\LeaveRequest;
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -24,26 +25,19 @@ class LeaveRequestNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return match ($this->type) {
-            'submitted' => (new MailMessage)
-                ->subject('Pengajuan Cuti Baru')
-                ->line('Pengajuan cuti baru telah diajukan oleh ' . $this->leaveRequest->user->name)
-                ->line('Jenis: ' . $this->leaveRequest->leaveType->name)
-                ->line('Periode: ' . $this->leaveRequest->start_date->format('d/m/Y') . ' - ' . $this->leaveRequest->end_date->format('d/m/Y'))
-                ->line('Jumlah hari: ' . $this->leaveRequest->total_days . ' hari')
-                ->action('Lihat Pengajuan', url('/admin/leave-requests/' . $this->leaveRequest->id)),
-            'approved' => (new MailMessage)
-                ->subject('Pengajuan Cuti Disetujui')
-                ->line('Pengajuan cuti Anda telah disetujui.')
-                ->line('Jenis: ' . $this->leaveRequest->leaveType->name)
-                ->line('Periode: ' . $this->leaveRequest->start_date->format('d/m/Y') . ' - ' . $this->leaveRequest->end_date->format('d/m/Y')),
-            'rejected' => (new MailMessage)
-                ->subject('Pengajuan Cuti Ditolak')
-                ->line('Pengajuan cuti Anda telah ditolak.')
-                ->line('Alasan: ' . ($this->leaveRequest->rejection_reason ?? '-')),
-            default => (new MailMessage)
-                ->subject('Update Status Cuti')
-                ->line('Status pengajuan cuti Anda telah diperbarui.'),
-        };
+        $mail = (new MailMessage)
+            ->subject(match ($this->type) {
+                'submitted' => 'Pengajuan Cuti Baru - ' . $this->leaveRequest->user->name,
+                'approved' => 'Pengajuan Cuti Disetujui',
+                'rejected' => 'Pengajuan Cuti Ditolak',
+                default => 'Update Status Cuti',
+            })
+            ->view('emails.leave-notification', [
+                'leaveRequest' => $this->leaveRequest,
+                'type' => $this->type,
+                'manager' => $notifiable,
+            ]);
+
+        return $mail;
     }
 }

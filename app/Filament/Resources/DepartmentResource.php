@@ -13,6 +13,8 @@ class DepartmentResource extends Resource
     protected static ?string $model = Department::class;
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
     protected static ?string $navigationLabel = 'Departemen';
+    protected static ?string $navigationGroup = 'Pengelolaan';
+    protected static ?int $navigationSort = 2;
     protected static ?string $modelLabel = 'Departemen';
     protected static ?string $pluralModelLabel = 'Departemen';
 
