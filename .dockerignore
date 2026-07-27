@@ -2,7 +2,8 @@ vendor/
 node_modules/
 .git/
 .env
-.env.*
+.env.local
+.env.production
 storage/logs/*.log
 storage/framework/cache/*
 storage/framework/sessions/*

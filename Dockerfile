@@ -16,7 +16,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN cp -n .env.example .env \
+RUN test -f .env || cp .env.example .env \
     && composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
     && php artisan key:generate --force \
     && chmod -R 775 storage bootstrap/cache
