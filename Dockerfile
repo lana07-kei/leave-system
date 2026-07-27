@@ -16,9 +16,10 @@ WORKDIR /app
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
+RUN chmod +x start.sh \
+    && composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
     && chmod -R 775 storage bootstrap/cache
 
-EXPOSE ${PORT:-8000}
+EXPOSE 8000
 
-CMD php artisan migrate --force && php artisan db:seed --force; php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+CMD ["sh", "./start.sh"]
