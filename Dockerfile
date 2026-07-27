@@ -16,8 +16,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN chmod +x start.sh \
+RUN cp -n .env.example .env \
     && composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
+    && php artisan key:generate --force \
     && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000
