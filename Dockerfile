@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libpng-dev \
     libexif-dev \
+    libonig-dev \
     unzip \
     && docker-php-ext-install intl zip pdo_mysql mbstring gd bcmath exif opcache \
     && rm -rf /var/lib/apt/lists/*
