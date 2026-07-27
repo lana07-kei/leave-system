@@ -1,9 +1,0 @@
-[phases.setup]
-nixPkgs = ["php82", "composer", "unzip"]
-phpExtensions = ["intl", "zip", "pdo_mysql", "mbstring", "gd", "bcmath", "exif", "opcache"]
-
-[phases.install]
-cmds = ["composer install --no-dev --optimize-autoloader --no-interaction"]
-
-[phases.start]
-cmd = "php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan serve --host=0.0.0.0 --port=$PORT"
