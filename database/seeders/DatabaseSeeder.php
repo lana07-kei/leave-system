@@ -14,6 +14,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        if (User::where('email', 'hr@company.com')->exists()) {
+            echo "Database already seeded, skipping.\n";
+            return;
+        }
+
         // Create Departments
         $hrDept = Department::create(['name' => 'Human Resources', 'description' => 'Bagian SDM']);
         $itDept = Department::create(['name' => 'Information Technology', 'description' => 'Bagian IT']);
@@ -154,8 +159,5 @@ class DatabaseSeeder extends Seeder
         ]);
 
         echo "Seed data created successfully!\n";
-        echo "HR Admin: hr@company.com / password\n";
-        echo "Manager IT: manager.it@company.com / password\n";
-        echo "Karyawan: dewi@company.com / password\n";
     }
 }
