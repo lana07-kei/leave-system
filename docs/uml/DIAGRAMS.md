@@ -445,3 +445,126 @@ erDiagram
     leave_types ||--o{ leave_balances : "tracking"
     leave_requests ||--o{ activity_logs : "logging"
 ```
+
+---
+
+## 8. Deployment Architecture Diagram (Cloud)
+
+```mermaid
+graph TB
+    subgraph "User Layer"
+        Browser["Browser<br/>(User)"]
+    end
+
+    subgraph "Cloud: Railway (PaaS)"
+        subgraph "Compute Service"
+            App["PHP 8.2 Container<br/>Laravel 11 + Filament 3"]
+            Scheduler["Laravel Scheduler<br/>(cron: leave:cancel-expired)"]
+            QueueWorker["Queue Worker<br/>(notifications)"]
+        end
+
+        subgraph "Managed Database"
+            MySQL["MySQL 8.0<br/>(Managed Service)"]
+        end
+
+        subgraph "Object Storage"
+            Storage["File Storage<br/>(attachments)"]
+        end
+
+        subgraph "Environment"
+            Env["Environment Variables<br/>(APP_KEY, DB_URL, MAIL_*)"]
+        end
+    end
+
+    subgraph "External Services"
+        Mail["SMTP Mail Server<br/>(Gmail/SMTP)"]
+        GitHub["GitHub<br/>(Source Code + CI/CD)"]
+    end
+
+    Browser -->|"HTTPS"| App
+    App -->|"SQL"| MySQL
+    App -->|"File I/O"| Storage
+    Scheduler -->|"Cron Job"| App
+    QueueWorker -->|"Process Jobs"| App
+    App -->|"Email"| Mail
+    GitHub -->|"git push"| App
+    Env -.->|"Configure"| App
+
+    style App fill:#6366f1,color:#fff
+    style MySQL fill:#2563eb,color:#fff
+    style Storage fill:#059669,color:#fff
+    style Scheduler fill:#d97706,color:#fff
+    style QueueWorker fill:#d97706,color:#fff
+```
+
+---
+
+## 9. Cloud Service Justification
+
+### Pilihan: Railway (PaaS)
+
+**Mengapa Railway:**
+
+| Kriteria | Railway | AWS (EC2+EBS) | Render | VPS (DigitalOcean) |
+|----------|---------|---------------|--------|---------------------|
+| Kemudahan Deploy | Sangat mudah (git push) | Sulit (manual config) | Mudah | Sedang |
+| Managed Database | Ya (MySQL built-in) | Ya (RDS, mahal) | Ya (MySQL) | Tidak (manual) |
+| Biaya Free Tier | $5 credit/bulan | 12 bulan gratis | Gratis (terbatas) | $200 credit |
+| Auto Deploy | Ya (otomatis) | Perlu CI/CD setup | Ya | Perlu setup |
+| Environment Mgmt | Built-in | Secrets Manager | Built-in | Manual |
+| Laravel Support | Nixpacks (auto-detect) | Manual | Buildpack | Manual |
+
+**Railway dipilih karena:**
+1. **PaaS (Platform-as-a-Service)**: Tidak perlu manage server, fokus ke kode
+2. **Managed Database**: MySQL disediakan tanpa install manual
+3. **Auto Deploy**: Push ke GitHub → otomatis deploy
+4. **Environment Variables**: Secrets management bawaan
+5. **Cocok untuk tugas kuliah**: Cepat setup, mudah dijelaskan
+
+### Konsep Cloud yang Diterapkan
+
+1. **Managed Database Service**: MySQL 8.0 managed oleh Railway, bukan install manual di server
+2. **Environment/Secrets Management**: APP_KEY, DB_PASSWORD, MAIL credentials disimpan sebagai environment variables, bukan dihardcode
+3. **Auto Deploy (CI/CD)**: Push ke branch `main` → otomatis build & deploy
+4. **Scalability**: Railway mendukung horizontal scaling (tambah container) pada plan berbayar
+
+---
+
+## 10. Estimasi Biaya Operasional Bulanan (Railway)
+
+### Plan: Hobby ($5/month credit)
+
+| Komponen | Spesifikasi | Biaya/Bulan |
+|----------|-------------|-------------|
+| **Compute** | 512 MB RAM, 1 vCPU | ~$5.00 |
+| **MySQL** | 1 GB storage, shared CPU | ~$1.00 |
+| **Bandwidth** | 100 GB included | $0 (included) |
+| **Storage (files)** | 1 GB | $0 (included) |
+| **Total** | | **~$6.00/bulan** |
+
+> Dengan credit $5/bulan dari Railway Hobby Plan, estimasi biaya riil sekitar **$1.00/bulan**.
+
+### Alternatif: Free Tier
+- Railway memberikan **$5 credit gratis** setiap bulan
+- Untuk aplikasi skala kecil (UAS), **gratis** selama tidak melebihi credit
+- Cukup untuk 1 container + 1 MySQL instance
+
+---
+
+## 11. CI/CD Pipeline
+
+```mermaid
+graph LR
+    A["Developer<br/>git push"] --> B["GitHub<br/>Repository"]
+    B --> C["Railway<br/>Webhook Trigger"]
+    C --> D["Build Phase<br/>(Nixpacks)"]
+    D --> E["Install Dependencies<br/>(composer install)"]
+    E --> F["Cache Config<br/>(config:cache, route:cache)"]
+    F --> G["Deploy Phase<br/>(Start Command)"]
+    G --> H["Migrate DB<br/>(migrate --force)"]
+    H --> I["Health Check<br/>(/admin/login)"]
+    I --> J["Live Application<br/>(URL publik)"]
+
+    style A fill:#6366f1,color:#fff
+    style J fill:#059669,color:#fff
+```
