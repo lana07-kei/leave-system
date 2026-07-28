@@ -21,4 +21,4 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --no-script
 
 EXPOSE 8000
 
-CMD sh -c 'rm -f .env && rm -f bootstrap/cache/*.php && php artisan config:cache 2>&1; php artisan migrate --force 2>&1; php artisan db:seed --force 2>&1; exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}'
+CMD sh -c 'php artisan key:generate --force 2>&1; php artisan config:clear 2>&1; php artisan migrate --force 2>&1; php artisan db:seed --force 2>&1; exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}'
