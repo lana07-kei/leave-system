@@ -19,7 +19,8 @@ COPY . .
 RUN test -f .env || cp .env.example .env \
     && composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
     && php artisan key:generate --force \
-    && chmod -R 775 storage bootstrap/cache
+    && chmod -R 775 storage bootstrap/cache \
+    && chmod +x start.sh
 
 EXPOSE 8000
 
