@@ -16,14 +16,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN test -f .env || cp .env.example .env \
-    && composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
-    && php artisan key:generate --force \
-    && php artisan filament:assets \
-    && php artisan storage:link \
-    && chmod -R 775 storage bootstrap/cache public \
-    && chmod +x start.sh
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
+    && chmod -R 775 storage bootstrap/cache public
 
 EXPOSE 8000
 
-CMD ["sh", "./start.sh"]
+CMD sh -c 'php artisan migrate --force 2>&1; php artisan db:seed --force 2>&1; exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}'
