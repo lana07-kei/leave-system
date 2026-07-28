@@ -16,10 +16,10 @@ WORKDIR /app
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
-    && mkdir -p storage/framework/sessions storage/framework/cache storage/framework/views storage/logs \
-    && chmod -R 775 storage bootstrap/cache public
+RUN cp .env.example .env && php artisan key:generate --force && php artisan package:discover --ansi && php artisan filament:assets --no-interaction && rm -f .env && \
+    mkdir -p storage/framework/sessions storage/framework/cache storage/framework/views storage/logs && \
+    chmod -R 775 storage bootstrap/cache public
 
 EXPOSE 8000
 
-CMD sh -c 'export SESSION_DRIVER=file && export CACHE_STORE=file && export APP_DEBUG=true && cp .env.example .env && php artisan key:generate --force 2>&1 && php artisan package:discover --ansi 2>&1 && php artisan migrate --force 2>&1; php artisan db:seed --force 2>&1; php artisan filament:assets --no-interaction 2>&1; exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}'
+CMD sh -c 'export SESSION_DRIVER=file && export CACHE_STORE=file && export APP_DEBUG=true && cp .env.example .env && php artisan key:generate --force 2>&1 && php artisan migrate --force 2>&1; php artisan db:seed --force 2>&1; exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}'
